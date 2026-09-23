@@ -1,0 +1,7 @@
+<%- include('../partials/header', { titulo: 'Mis pedidos' }) %>
+<div class="page-heading"><div><div class="eyebrow">Tu cuenta</div><h1>Mis pedidos</h1><p class="muted">Consulta el estado y los detalles de cada pedido.</p></div><a class="button button-primary" href="/cliente/pedidos/nuevo">＋ Nuevo pedido</a></div>
+<% if (!pedidos.length) { %><section class="empty-state"><div class="empty-icon">＋</div><h2>Aún no tienes pedidos</h2><p>Cuando agregues productos de Temu, aparecerán aquí.</p><a class="button button-primary" href="/cliente/pedidos/nuevo">Crear mi primer pedido</a></section><% } else { %>
+<div class="table-wrap"><table><thead><tr><th>Pedido</th><th>Fecha</th><th>Estado</th><th>Total</th><th></th></tr></thead><tbody>
+<% pedidos.forEach(p => { %><tr><td class="strong">#<%= p.id %></td><td><%= new Date(p.creado_en).toLocaleDateString('es-CR') %></td><td><span class="status status-<%= p.estado %>"><%= etiquetasEstado[p.estado] %></span></td><td><%= ['cotizado','aceptado','rechazado','comprado','entregado'].includes(p.estado) ? dinero(p.total) : '—' %></td><td><a class="text-link" href="/cliente/pedidos/<%= p.id %>">Ver pedido →</a></td></tr><% }) %>
+</tbody></table></div><% } %>
+<%- include('../partials/footer') %>

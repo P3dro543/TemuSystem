@@ -1,0 +1,5 @@
+node_modules/
+.env
+.vercel/
+pedidos-temu.zip
+npm-debug.log*

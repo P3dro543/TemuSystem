@@ -1,0 +1,9 @@
+<%- include('partials/header', { titulo: 'Iniciar sesión' }) %>
+<section class="auth-card"><div class="eyebrow">Bienvenido de nuevo</div><h1>Inicia sesión</h1><p class="muted">Accede para revisar tus pedidos y cotizaciones.</p>
+<% if (error) { %><div class="alert alert-error"><%= error %></div><% } %>
+<form method="post" action="/login" class="stack"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <label>Correo electrónico<input type="email" name="correo" autocomplete="email" maxlength="254" required></label>
+  <label>Contraseña<input type="password" name="contrasena" autocomplete="current-password" required></label>
+  <button class="button button-primary button-wide" type="submit">Entrar</button>
+</form><p class="auth-switch">¿Aún no tienes cuenta? <a href="/registro">Regístrate</a></p></section>
+<%- include('partials/footer') %>

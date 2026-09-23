@@ -1,0 +1,12 @@
+<%- include('partials/header', { titulo: 'Crear cuenta' }) %>
+<section class="auth-card"><div class="eyebrow">Empieza tu pedido</div><h1>Crea tu cuenta</h1><p class="muted">Regístrate para guardar y consultar tus pedidos.</p>
+<% if (error) { %><div class="alert alert-error"><%= error %></div><% } %>
+<form method="post" action="/registro" class="stack"><input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <label>Nombre completo<input name="nombre" autocomplete="name" maxlength="120" value="<%= valores.nombre || '' %>" required></label>
+  <label>Correo electrónico<input type="email" name="correo" autocomplete="email" maxlength="254" value="<%= valores.correo || '' %>" required></label>
+  <label>Teléfono <span class="muted">(opcional)</span><input name="telefono" autocomplete="tel" maxlength="40" value="<%= valores.telefono || '' %>"></label>
+  <label>Contraseña<input type="password" name="contrasena" autocomplete="new-password" minlength="8" maxlength="72" required><small>Al menos 8 caracteres.</small></label>
+  <label>Confirma tu contraseña<input type="password" name="confirmar" autocomplete="new-password" minlength="8" maxlength="72" required></label>
+  <button class="button button-primary button-wide" type="submit">Crear cuenta</button>
+</form><p class="auth-switch">¿Ya tienes cuenta? <a href="/login">Inicia sesión</a></p></section>
+<%- include('partials/footer') %>
