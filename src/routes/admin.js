@@ -14,7 +14,7 @@ router.get('/pedidos', async (req, res, next) => {
   try {
     const { rows } = await pool.query(`SELECT p.id,p.estado,p.total,p.creado_en,u.nombre AS cliente,u.correo
       FROM pedidos p JOIN usuarios u ON u.id=p.usuario_id
-      WHERE ($1='' OR p.estado=$1) AND ($2='' OR u.nombre ILIKE '%' || $2 || '%' OR u.correo ILIKE '%' || $2 || '%')
+      WHERE ($1='' OR p.estado::text=$1) AND ($2='' OR u.nombre ILIKE '%' || $2 || '%' OR u.correo ILIKE '%' || $2 || '%')
       ORDER BY p.creado_en DESC`, [estado, buscar]);
     res.render('admin/pedidos', { pedidos: rows, estado, buscar });
   } catch (e) { next(e); }
