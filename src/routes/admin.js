@@ -6,6 +6,134 @@ const { enviarCotizacion } = require('../services/correo');
 const router = express.Router();
 router.use(requiereLogin, soloAdmin);
 
+router.get('/usuarios', async (req, res, next) => {
+  const buscar = String(req.query.buscar || '').trim().slice(0, 120);
+  const rol = String(req.query.rol || '');
+  const roles = ['admin', 'cliente'];
+  const paginaTexto = String(req.query.pagina || '1');
+  if ((rol && !roles.includes(rol)) || !/^\d{1,7}$/.test(paginaTexto) || Number(paginaTexto) < 1) {
+    return res.status(400).render('error', { titulo: 'Filtro no válido', mensaje: 'Revisa la búsqueda y vuelve a intentarlo.' });
+  }
+  const porPagina = 50;
+  try {
+    const conteo = await pool.query(`SELECT COUNT(*)::int AS total FROM usuarios u
+      WHERE ($1='' OR u.nombre ILIKE '%' || $1 || '%' OR u.correo ILIKE '%' || $1 || '%')
+      AND ($2='' OR u.rol::text=$2)`, [buscar, rol]);
+    const total = conteo.rows[0].total;
+    const paginas = Math.max(1, Math.ceil(total / porPagina));
+    const pagina = Math.min(Number(paginaTexto), paginas);
+    const { rows } = await pool.query(`SELECT u.id,u.nombre,u.correo,u.telefono,u.rol::text AS rol,u.creado_en,
+        COUNT(p.id)::int AS cantidad_pedidos
+      FROM usuarios u LEFT JOIN pedidos p ON p.usuario_id=u.id
+      WHERE ($1='' OR u.nombre ILIKE '%' || $1 || '%' OR u.correo ILIKE '%' || $1 || '%')
+      AND ($2='' OR u.rol::text=$2)
+      GROUP BY u.id ORDER BY u.creado_en DESC,u.id DESC LIMIT $3 OFFSET $4`,
+    [buscar, rol, porPagina, (pagina - 1) * porPagina]);
+    res.render('admin/usuarios', { usuarios: rows, buscar, rol, pagina, paginas, total });
+  } catch (e) { next(e); }
+});
+
+router.get('/usuarios/:id/editar', async (req, res, next) => {
+  if (!/^\d{1,18}$/.test(req.params.id)) return res.status(404).render('error', { titulo: 'Usuario no encontrado', mensaje: 'No encontramos esa cuenta.' });
+  try {
+    const { rows } = await pool.query(`SELECT id,nombre,correo,telefono,rol::text AS rol
+      FROM usuarios WHERE id=$1`, [req.params.id]);
+    if (!rows.length) return res.status(404).render('error', { titulo: 'Usuario no encontrado', mensaje: 'No encontramos esa cuenta.' });
+    res.render('admin/editar-usuario', { cuenta: rows[0], error: null });
+  } catch (e) { next(e); }
+});
+
+router.post('/usuarios/:id/editar', async (req, res, next) => {
+  if (!/^\d{1,18}$/.test(req.params.id)) return res.status(404).render('error', { titulo: 'Usuario no encontrado', mensaje: 'No encontramos esa cuenta.' });
+  const cuenta = {
+    id: req.params.id,
+    nombre: String(req.body.nombre || '').trim(),
+    correo: String(req.body.correo || '').trim().toLowerCase(),
+    telefono: String(req.body.telefono || '').trim(),
+    rol: String(req.body.rol || '')
+  };
+  let error = null;
+  if (cuenta.nombre.length < 2 || cuenta.nombre.length > 100) error = 'El nombre debe tener entre 2 y 100 caracteres.';
+  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cuenta.correo) || cuenta.correo.length > 254) error = 'Ingresa un correo válido.';
+  else if (cuenta.telefono.length > 30) error = 'El teléfono debe tener 30 caracteres o menos.';
+  else if (!['admin', 'cliente'].includes(cuenta.rol)) error = 'El tipo de cuenta no es válido.';
+  if (error) return res.status(400).render('admin/editar-usuario', { cuenta, error });
+
+  let client;
+  try {
+    client = await pool.connect();
+    await client.query('BEGIN');
+    const actual = await client.query('SELECT id,rol::text AS rol FROM usuarios WHERE id=$1 FOR UPDATE', [cuenta.id]);
+    if (!actual.rowCount) {
+      await client.query('ROLLBACK');
+      req.session.mensaje = { tipo: 'error', texto: 'No encontramos esa cuenta.' };
+      return res.redirect('/admin/usuarios');
+    }
+    const rolActual = actual.rows[0].rol;
+    const esCuentaActual = String(req.session.usuario.id) === String(cuenta.id);
+    if (esCuentaActual && rolActual !== cuenta.rol) throw new Error('No puedes cambiar tu propio rol. Otro administrador puede hacerlo.');
+    if (rolActual === 'admin' && cuenta.rol === 'cliente') {
+      const admins = await client.query("SELECT id FROM usuarios WHERE rol::text='admin' ORDER BY id FOR UPDATE");
+      if (admins.rowCount <= 1) throw new Error('No se puede cambiar el rol del último administrador.');
+    }
+    const repetido = await client.query('SELECT 1 FROM usuarios WHERE LOWER(correo)=LOWER($1) AND id<>$2 LIMIT 1', [cuenta.correo, cuenta.id]);
+    if (repetido.rowCount) throw new Error('Ya existe otra cuenta con ese correo.');
+    await client.query('UPDATE usuarios SET nombre=$1,correo=$2,telefono=$3,rol=$4 WHERE id=$5', [cuenta.nombre, cuenta.correo, cuenta.telefono || null, cuenta.rol, cuenta.id]);
+    await client.query("DELETE FROM session WHERE sess->'usuario'->>'id'=$1", [cuenta.id]);
+    await client.query('COMMIT');
+    if (esCuentaActual) Object.assign(req.session.usuario, { nombre: cuenta.nombre, correo: cuenta.correo, telefono: cuenta.telefono || null });
+    req.session.mensaje = { tipo: 'exito', texto: `Se actualizaron los datos de ${cuenta.nombre}.` };
+    res.redirect('/admin/usuarios');
+  } catch (e) {
+    if (client) { try { await client.query('ROLLBACK'); } catch {} }
+    if (e.code === '23505') error = 'Ya existe otra cuenta con ese correo.';
+    else if (e.message.includes('No puedes') || e.message.includes('último administrador') || e.message.includes('Ya existe otra cuenta')) error = e.message;
+    else return next(e);
+    return res.status(400).render('admin/editar-usuario', { cuenta, error });
+  } finally { client?.release(); }
+});
+
+router.post('/usuarios/:id/eliminar', async (req, res, next) => {
+  if (!/^\d{1,18}$/.test(req.params.id)) {
+    req.session.mensaje = { tipo: 'error', texto: 'La cuenta indicada no es válida.' };
+    return res.redirect('/admin/usuarios');
+  }
+  const id = String(req.params.id);
+  if (String(req.session.usuario.id) === id) {
+    req.session.mensaje = { tipo: 'error', texto: 'No puedes eliminar la cuenta con la que tienes iniciada esta sesión.' };
+    return res.redirect('/admin/usuarios');
+  }
+  let client;
+  try {
+    client = await pool.connect();
+    await client.query('BEGIN');
+    const target = await client.query('SELECT id,nombre,rol::text AS rol FROM usuarios WHERE id=$1 FOR UPDATE', [id]);
+    if (!target.rowCount) {
+      await client.query('ROLLBACK');
+      req.session.mensaje = { tipo: 'error', texto: 'No encontramos esa cuenta.' };
+      return res.redirect('/admin/usuarios');
+    }
+    if (target.rows[0].rol === 'admin') {
+      const admins = await client.query("SELECT id FROM usuarios WHERE rol::text='admin' ORDER BY id FOR UPDATE");
+      if (admins.rowCount <= 1) throw new Error('No se puede eliminar el último administrador.');
+    }
+    const pedidos = await client.query('SELECT 1 FROM pedidos WHERE usuario_id=$1 LIMIT 1', [id]);
+    if (pedidos.rowCount) throw new Error('Esta cuenta tiene pedidos asociados; no se puede eliminar sin perder el historial.');
+    await client.query("DELETE FROM session WHERE sess->'usuario'->>'id'=$1", [id]);
+    await client.query('DELETE FROM usuarios WHERE id=$1', [id]);
+    await client.query('COMMIT');
+    req.session.mensaje = { tipo: 'exito', texto: `Se eliminó la cuenta de ${target.rows[0].nombre}.` };
+    res.redirect('/admin/usuarios');
+  } catch (e) {
+    if (client) { try { await client.query('ROLLBACK'); } catch {} }
+    if (e.message.includes('último administrador') || e.message.includes('pedidos asociados')) {
+      req.session.mensaje = { tipo: 'error', texto: e.message };
+      return res.redirect('/admin/usuarios');
+    }
+    next(e);
+  } finally { client?.release(); }
+});
+
 router.get('/pedidos', async (req, res, next) => {
   const estado = String(req.query.estado || '');
   const buscar = String(req.query.buscar || '').trim().slice(0, 120);

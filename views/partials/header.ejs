@@ -9,7 +9,7 @@
 <header class="site-header"><div class="header-inner">
   <a class="brand" href="/"><span class="brand-mark">T</span><span>Pedidos Temu</span></a>
   <% if (usuario) { %><nav aria-label="Navegación principal">
-    <% if (usuario.rol === 'admin') { %><a href="/admin/pedidos">Pedidos</a><% } else { %><a href="/cliente/pedidos/nuevo">Nuevo pedido</a><a href="/cliente/pedidos">Mis pedidos</a><% } %>
+    <% if (usuario.rol === 'admin') { %><a href="/admin/pedidos">Pedidos</a><a href="/admin/usuarios">Usuarios</a><% } else { %><a href="/cliente/pedidos/nuevo">Nuevo pedido</a><a href="/cliente/pedidos">Mis pedidos</a><% } %>
     <form class="nav-form" method="post" action="/logout"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><button class="nav-button" type="submit">Salir</button></form>
   </nav><% } %>
 </div></header>

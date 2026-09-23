@@ -1,0 +1,14 @@
+<%- include('../partials/header', { titulo: `Editar usuario ${cuenta.nombre}` }) %>
+<a class="text-link back-link" href="/admin/usuarios">← Volver a usuarios</a>
+<div class="page-heading"><div><div class="eyebrow">Panel de administración</div><h1>Editar usuario</h1><p class="muted">Actualiza los datos de la cuenta. Nunca se muestra ni se modifica su contraseña aquí.</p></div></div>
+<% if (error) { %><div class="alert alert-error"><%= error %></div><% } %>
+<form class="panel user-edit-form stack" method="post" action="/admin/usuarios/<%= cuenta.id %>/editar">
+  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+  <label>Nombre completo<input name="nombre" value="<%= cuenta.nombre %>" maxlength="100" autocomplete="name" required></label>
+  <label>Correo electrónico<input type="email" name="correo" value="<%= cuenta.correo %>" maxlength="254" autocomplete="email" required></label>
+  <label>Teléfono <span class="muted">(opcional)</span><input name="telefono" value="<%= cuenta.telefono || '' %>" maxlength="30" autocomplete="tel"></label>
+  <label>Tipo de cuenta<select name="rol" <%= String(usuario.id) === String(cuenta.id) ? 'disabled' : '' %>><option value="cliente" <%= cuenta.rol === 'cliente' ? 'selected' : '' %>>Cliente</option><option value="admin" <%= cuenta.rol === 'admin' ? 'selected' : '' %>>Administrador</option></select></label>
+  <% if (String(usuario.id) === String(cuenta.id)) { %><input type="hidden" name="rol" value="<%= cuenta.rol %>"><small class="muted">No puedes cambiar tu propio rol.</small><% } %>
+  <div class="form-actions user-edit-actions"><a class="button button-quiet" href="/admin/usuarios">Cancelar</a><button class="button button-primary" type="submit">Guardar cambios</button></div>
+</form>
+<%- include('../partials/footer') %>
