@@ -12,7 +12,7 @@ async function main() {
     const contrasena = await rl.question('Contraseña (mínimo 12 caracteres): ');
     if (nombre.length < 2 || nombre.length > 100) throw new Error('El nombre debe tener entre 2 y 100 caracteres.');
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) throw new Error('El correo no tiene un formato válido.');
-    if (contrasena.length < 12 || contrasena.length > 72) throw new Error('La contraseña debe tener entre 12 y 72 caracteres.');
+    if (contrasena.length < 12 || Buffer.byteLength(contrasena, 'utf8') > 72) throw new Error('La contraseña debe tener al menos 12 caracteres y no superar 72 bytes.');
     const hash = await bcrypt.hash(contrasena, 12);
     await pool.query('INSERT INTO usuarios (nombre, correo, contrasena_hash, rol) VALUES ($1, $2, $3, $4)', [nombre, correo, hash, 'admin']);
     console.log('Administrador creado correctamente.');

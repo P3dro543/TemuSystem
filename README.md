@@ -16,7 +16,7 @@ Activa la verificación en dos pasos de la cuenta Gmail que enviará los mensaje
 ## 3. Configurar y ejecutar localmente
 
 1. Copia `.env.example` a `.env`.
-2. Completa `DATABASE_URL`, `SESSION_SECRET`, `GMAIL_USER`, `GMAIL_APP_PASSWORD` y el símbolo deseado en `CURRENCY_SYMBOL`. Usa una cadena aleatoria larga para `SESSION_SECRET`. En local, `BASE_URL=http://localhost:3000`. La recuperación de contraseña envía un enlace de un solo uso que vence en 30 minutos, usando Gmail y `BASE_URL`.
+2. Completa `DATABASE_URL`, `SESSION_SECRET`, `GMAIL_USER`, `GMAIL_APP_PASSWORD` y el símbolo deseado en `CURRENCY_SYMBOL`. `SESSION_SECRET` debe ser único, aleatorio y de al menos 32 bytes; si lo cambias, todas las sesiones anteriores dejan de servir. En local, `BASE_URL=http://localhost:3000`. La recuperación de contraseña envía un enlace de un solo uso que vence en 30 minutos, usando Gmail y `BASE_URL`.
 3. Instala Node.js 20 o posterior.
 4. Desde la carpeta del proyecto ejecuta:
 
@@ -65,6 +65,7 @@ Consulta `.env.example`. Nunca publiques `.env`, contraseñas de aplicación ni 
 - **Auditoría:** consulta los cambios importantes de pedidos, cotizaciones, cuentas y contraseñas, con filtros por acción y fecha.
 - **Contraseñas:** cada usuario puede cambiar su contraseña desde su cuenta o solicitar un enlace de recuperación por correo.
 - **Cotizaciones:** los importes usan formato regional de Costa Rica y el correo adapta sus artículos a pantallas pequeñas.
+- **Seguridad:** cookies de sesión `HttpOnly` y `Secure` en producción, sesiones con vencimiento por inactividad, protección CSRF, encabezados de seguridad, límites de intentos y páginas dinámicas sin caché. Las contraseñas nuevas requieren al menos 12 caracteres.
 
 ## Suposiciones y mejoras futuras
 

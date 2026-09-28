@@ -9,6 +9,7 @@ const { enviarRestablecimiento } = require('../services/correo');
 const router = express.Router();
 const limiteAuth = rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, standardHeaders: 'draft-7', legacyHeaders: false, message: 'Demasiados intentos. Espera 15 minutos e inténtalo de nuevo.' });
 const correoValido = v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) && v.length <= 254;
+const contrasenaValida = v => v.length >= 12 && Buffer.byteLength(v, 'utf8') <= 72;
 
 router.get('/registro', (req, res) => res.render('registro', { error: null, valores: {} }));
 router.post('/registro', limiteAuth, async (req, res, next) => {
@@ -22,7 +23,7 @@ router.post('/registro', limiteAuth, async (req, res, next) => {
   if (nombre.length < 2 || nombre.length > 100) error = 'El nombre debe tener entre 2 y 100 caracteres.';
   else if (!correoValido(correo)) error = 'Ingresa un correo válido.';
   else if (telefono.length > 30) error = 'El teléfono debe tener 30 caracteres o menos.';
-  else if (pass.length < 8 || pass.length > 72) error = 'La contraseña debe tener entre 8 y 72 caracteres.';
+  else if (!contrasenaValida(pass)) error = 'La contraseña debe tener al menos 12 caracteres y no superar 72 bytes.';
   else if (pass !== confirmar) error = 'Las contraseñas no coinciden.';
   if (error) return res.status(400).render('registro', { error, valores });
   let client;
@@ -103,7 +104,7 @@ router.post('/restablecer-contrasena/:token', limiteAuth, async (req, res, next)
   const nueva = String(req.body.contrasena || '');
   const confirmar = String(req.body.confirmar || '');
   if (!/^[a-f0-9]{64}$/i.test(token)) return res.status(400).render('error', { titulo: 'Enlace no válido', mensaje: 'Solicita un enlace nuevo para cambiar tu contraseña.' });
-  let error = nueva.length < 8 || nueva.length > 72 ? 'La contraseña debe tener entre 8 y 72 caracteres.' : nueva !== confirmar ? 'Las contraseñas no coinciden.' : null;
+  let error = !contrasenaValida(nueva) ? 'La contraseña debe tener al menos 12 caracteres y no superar 72 bytes.' : nueva !== confirmar ? 'Las contraseñas no coinciden.' : null;
   if (error) return res.status(400).render('restablecer-contrasena', { token, error });
   let client;
   try {
@@ -137,7 +138,7 @@ router.post('/cuenta/contrasena', requiereLogin, limiteAuth, async (req, res, ne
   const actualPass = String(req.body.contrasena_actual || '');
   const nueva = String(req.body.contrasena || '');
   const confirmar = String(req.body.confirmar || '');
-  let error = nueva.length < 8 || nueva.length > 72 ? 'La contraseña nueva debe tener entre 8 y 72 caracteres.' : nueva !== confirmar ? 'Las contraseñas nuevas no coinciden.' : null;
+  let error = !contrasenaValida(nueva) ? 'La contraseña nueva debe tener al menos 12 caracteres y no superar 72 bytes.' : nueva !== confirmar ? 'Las contraseñas nuevas no coinciden.' : null;
   if (error) return res.status(400).render('cambiar-contrasena', { error });
   let client;
   try {

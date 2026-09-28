@@ -11,7 +11,9 @@ const clienteRoutes = require('./src/routes/cliente');
 const adminRoutes = require('./src/routes/admin');
 const { ETIQUETAS, dinero } = require('./src/services/pedidos');
 
-if (!process.env.SESSION_SECRET) throw new Error('Configura SESSION_SECRET en el archivo .env.');
+if (!process.env.SESSION_SECRET || Buffer.byteLength(process.env.SESSION_SECRET, 'utf8') < 32) {
+  throw new Error('SESSION_SECRET debe tener al menos 32 bytes aleatorios. Actualízalo en el entorno de despliegue.');
+}
 const app = express();
 app.set('trust proxy', 1);
 app.set('view engine', 'ejs');
@@ -23,10 +25,12 @@ app.use(express.static(path.join(__dirname, 'public'), { maxAge: process.env.NOD
 app.use(session({
   name: 'temu.sid', secret: process.env.SESSION_SECRET,
   store: new PgSession({ pool, tableName: 'session', createTableIfMissing: false, pruneSessionInterval: 15 }),
-  resave: false, saveUninitialized: false,
-  cookie: { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', maxAge: 1000 * 60 * 60 * 24 * 7 }
+  resave: false, saveUninitialized: false, rolling: true,
+  cookie: { httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', maxAge: 1000 * 60 * 60 * 8 }
 }));
 app.use((req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('Pragma', 'no-cache');
   if (!req.session.csrfToken) req.session.csrfToken = crypto.randomBytes(32).toString('hex');
   res.locals.csrfToken = req.session.csrfToken;
   res.locals.usuario = req.session.usuario || null;
