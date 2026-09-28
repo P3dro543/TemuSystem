@@ -7,6 +7,7 @@
   <label>Teléfono <span class="muted">(opcional)</span><input name="telefono" autocomplete="tel" maxlength="30" value="<%= valores.telefono || '' %>"></label>
   <label>Contraseña<input type="password" name="contrasena" autocomplete="new-password" minlength="12" maxlength="72" required><small>Al menos 12 caracteres; máximo 72 bytes.</small></label>
   <label>Confirma tu contraseña<input type="password" name="confirmar" autocomplete="new-password" minlength="12" maxlength="72" required></label>
+  <label class="privacy-consent"><input type="checkbox" name="acepta_privacidad" required><span>He leído y acepto la <a href="/privacidad">Política de Privacidad</a>, incluido el acceso y almacenamiento por proveedores tecnológicos fuera de Costa Rica para operar el servicio.</span></label>
   <button class="button button-primary button-wide" type="submit">Crear cuenta</button>
 </form><p class="auth-switch">¿Ya tienes cuenta? <a href="/login">Inicia sesión</a></p></section>
 <%- include('partials/footer') %>

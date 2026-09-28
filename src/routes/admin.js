@@ -11,7 +11,8 @@ const accionesAuditoria = {
   cotizacion_guardada: 'Cotización guardada', pedido_estado_actualizado: 'Estado de pedido actualizado',
   cotizacion_correo_enviado: 'Correo de cotización enviado', usuario_actualizado: 'Datos de usuario actualizados',
   usuario_activado: 'Cuenta activada', usuario_desactivado: 'Cuenta desactivada',
-  contrasena_cambiada: 'Contraseña cambiada', contrasena_restablecida: 'Contraseña restablecida'
+  contrasena_cambiada: 'Contraseña cambiada', contrasena_restablecida: 'Contraseña restablecida',
+  politica_privacidad_aceptada: 'Política de privacidad aceptada'
 };
 
 router.get('/usuarios', async (req, res, next) => {

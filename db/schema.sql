@@ -5,6 +5,8 @@ CREATE TABLE IF NOT EXISTS usuarios (
   telefono VARCHAR(40),
   contrasena_hash TEXT NOT NULL,
   rol VARCHAR(10) NOT NULL CHECK (rol IN ('admin', 'cliente')),
+  privacidad_aceptada_en TIMESTAMPTZ,
+  privacidad_version VARCHAR(20),
   creado_en TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE UNIQUE INDEX IF NOT EXISTS usuarios_correo_lower_unique ON usuarios (LOWER(correo));

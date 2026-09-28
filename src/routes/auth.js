@@ -7,6 +7,7 @@ const { requiereLogin } = require('../middleware/auth');
 const { registrarAuditoria } = require('../services/auditoria');
 const { enviarRestablecimiento } = require('../services/correo');
 const router = express.Router();
+const POLITICA_VERSION = '2026-09-28';
 const limiteAuth = rateLimit({ windowMs: 15 * 60 * 1000, limit: 10, standardHeaders: 'draft-7', legacyHeaders: false, message: 'Demasiados intentos. Espera 15 minutos e inténtalo de nuevo.' });
 const correoValido = v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) && v.length <= 254;
 const contrasenaValida = v => v.length >= 12 && Buffer.byteLength(v, 'utf8') <= 72;
@@ -25,14 +26,18 @@ router.post('/registro', limiteAuth, async (req, res, next) => {
   else if (telefono.length > 30) error = 'El teléfono debe tener 30 caracteres o menos.';
   else if (!contrasenaValida(pass)) error = 'La contraseña debe tener al menos 12 caracteres y no superar 72 bytes.';
   else if (pass !== confirmar) error = 'Las contraseñas no coinciden.';
+  else if (req.body.acepta_privacidad !== 'on') error = 'Debes aceptar la Política de Privacidad para crear tu cuenta.';
   if (error) return res.status(400).render('registro', { error, valores });
   let client;
   try {
     const hash = await bcrypt.hash(pass, 12);
     client = await pool.connect();
     await client.query('BEGIN');
-    const insertado = await client.query('INSERT INTO usuarios (nombre, correo, telefono, contrasena_hash, rol) VALUES ($1,$2,$3,$4,$5) RETURNING id', [nombre, correo, telefono || null, hash, 'cliente']);
+    const insertado = await client.query(`INSERT INTO usuarios
+      (nombre, correo, telefono, contrasena_hash, rol, privacidad_aceptada_en, privacidad_version)
+      VALUES ($1,$2,$3,$4,$5,NOW(),$6) RETURNING id`, [nombre, correo, telefono || null, hash, 'cliente', POLITICA_VERSION]);
     await registrarAuditoria(client, { actorId: insertado.rows[0].id, accion: 'registro', entidad: 'usuario', entidadId: insertado.rows[0].id });
+    await registrarAuditoria(client, { actorId: insertado.rows[0].id, accion: 'politica_privacidad_aceptada', entidad: 'usuario', entidadId: insertado.rows[0].id, detalles: { version: POLITICA_VERSION, canal: 'registro' } });
     await client.query('COMMIT');
     req.session.mensaje = { tipo: 'exito', texto: 'Tu cuenta está lista. Inicia sesión.' };
     res.redirect('/login');
@@ -43,16 +48,28 @@ router.post('/registro', limiteAuth, async (req, res, next) => {
   } finally { client?.release(); }
 });
 router.get('/login', (req, res) => res.render('login', { error: null }));
+router.get('/privacidad', (req, res) => res.render('privacidad', { versionPolitica: POLITICA_VERSION }));
 router.post('/login', limiteAuth, async (req, res, next) => {
+  if (req.body.acepta_privacidad !== 'on') return res.status(400).render('login', { error: 'Debes leer y aceptar la Política de Privacidad para continuar.' });
   const correo = String(req.body.correo || '').trim().toLowerCase();
   const pass = String(req.body.contrasena || '');
   try {
-    const { rows } = await pool.query('SELECT id, nombre, correo, telefono, contrasena_hash, rol FROM usuarios WHERE LOWER(correo) = LOWER($1) AND activo=TRUE LIMIT 1', [correo]);
+    const { rows } = await pool.query('SELECT id, nombre, correo, telefono, contrasena_hash, rol, privacidad_version FROM usuarios WHERE LOWER(correo) = LOWER($1) AND activo=TRUE LIMIT 1', [correo]);
     const user = rows[0];
     // La comparación también se ejecuta para un correo inexistente para reducir diferencias de tiempo.
     const hash = user?.contrasena_hash || '$2b$12$C6UzMDM.H6dfI/f/IKcEe.4o8LjIP0sJpC8QKKb1DKHq5rHYZvtKC';
     const ok = await bcrypt.compare(pass.slice(0, 72), hash);
     if (!user || !ok) return res.status(401).render('login', { error: 'Correo o contraseña incorrectos.' });
+    if (user.privacidad_version !== POLITICA_VERSION) {
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        await client.query('UPDATE usuarios SET privacidad_aceptada_en=NOW(),privacidad_version=$1 WHERE id=$2', [POLITICA_VERSION, user.id]);
+        await registrarAuditoria(client, { actorId: user.id, accion: 'politica_privacidad_aceptada', entidad: 'usuario', entidadId: user.id, detalles: { version: POLITICA_VERSION, canal: 'inicio_sesion' } });
+        await client.query('COMMIT');
+      } catch (e) { await client.query('ROLLBACK').catch(() => {}); throw e; }
+      finally { client.release(); }
+    }
     await new Promise((resolve, reject) => req.session.regenerate(err => err ? reject(err) : resolve()));
     req.session.usuario = { id: user.id, nombre: user.nombre, correo: user.correo, telefono: user.telefono, rol: user.rol };
     res.redirect(user.rol === 'admin' ? '/admin/pedidos' : '/cliente/pedidos');

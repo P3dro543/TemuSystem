@@ -6,8 +6,8 @@ Aplicación en español para registrar pedidos de clientes, cotizarlos y enviar 
 
 1. Crea una cuenta en [Neon](https://neon.tech/) y crea un proyecto PostgreSQL.
 2. En el panel del proyecto, copia la cadena de conexión **pooled** (host con `-pooler` si Neon lo muestra). Se usará como `DATABASE_URL`; conserva `sslmode=require`.
-3. Si la base de datos está vacía, ejecuta primero [`db/schema.sql`](db/schema.sql) y después [`db/mejoras.sql`](db/mejoras.sql) en el SQL Editor de Neon.
-4. Si ya ejecutaste el esquema SQL anterior de Pedidos Temu, no lo vuelvas a ejecutar: ejecuta únicamente [`db/mejoras.sql`](db/mejoras.sql). Esta migración agrega el estado activo de las cuentas y las tablas para recuperación de contraseña y auditoría. Hazlo antes de desplegar esta versión.
+3. Si la base de datos está vacía, ejecuta [`db/schema.sql`](db/schema.sql), luego [`db/mejoras.sql`](db/mejoras.sql) y [`db/politica-privacidad.sql`](db/politica-privacidad.sql).
+4. Si ya ejecutaste el esquema de Pedidos Temu, no lo vuelvas a ejecutar. Aplica las migraciones pendientes: `db/mejoras.sql` (si aún no la corriste) y `db/politica-privacidad.sql`. Esta última guarda la fecha y versión del aviso aceptado. Hazlo antes de desplegar esta versión.
 
 ## 2. Preparar Gmail
 
@@ -49,7 +49,7 @@ Con la aplicación configurada y las tablas creadas, ejecuta `npm run crear-admi
    - `SESSION_SECRET` (secreto aleatorio largo y único)
    - `BASE_URL=https://tu-dominio.vercel.app` (usa tu dominio final, sin `/` al final)
    - `GMAIL_USER`, `GMAIL_APP_PASSWORD` y `CURRENCY_SYMBOL`
-3. Aplica en Neon la migración que corresponda según el paso 1 y crea el administrador con `npm run crear-admin`, usando el mismo `.env`/`DATABASE_URL` de producción. No hagas el registro admin desde la web.
+3. Aplica en Neon las migraciones pendientes descritas en el paso 1 y crea el administrador con `npm run crear-admin`, usando el mismo `.env`/`DATABASE_URL` de producción. No hagas el registro admin desde la web.
 4. Despliega y abre el dominio asignado. En dominios propios, configura el dominio en Vercel y actualiza `BASE_URL` al dominio HTTPS definitivo.
 
 Las sesiones se almacenan en PostgreSQL, por lo que sobreviven entre invocaciones de las funciones. La aplicación reutiliza el pool de conexiones de Neon y está configurada con un máximo de cinco conexiones por instancia. El entorno gratuito de Vercel tiene límites de duración y recursos; el envío SMTP depende de que Gmail permita la conexión desde el entorno desplegado.
