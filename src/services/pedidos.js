@@ -1,7 +1,8 @@
 const ETIQUETAS = { pendiente: 'Pendiente', cotizado: 'Cotizado', aceptado: 'Aceptado', rechazado: 'Rechazado', comprado: 'Comprado', entregado: 'Entregado' };
 function dinero(valor, simbolo = '$') {
   const numero = Number(valor || 0);
-  return `${simbolo}${(Number.isFinite(numero) ? numero : 0).toFixed(2)}`;
+  const formateado = new Intl.NumberFormat('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number.isFinite(numero) ? numero : 0);
+  return `${String(simbolo || '$').trim()} ${formateado}`;
 }
 function parseDinero(valor, nombre) {
   const texto = String(valor ?? '').trim().replace(',', '.');

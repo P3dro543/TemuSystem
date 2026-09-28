@@ -18,4 +18,10 @@ async function enviarCotizacion({ cliente, pedido, articulos }) {
   const texto = `Hola ${cliente.nombre},\n\nEsta es la cotización del pedido #${pedido.id} (${new Date(pedido.cotizado_en || Date.now()).toLocaleDateString('es-CR')}).\n\n${filas}\n${Number(pedido.envio) > 0 ? `Envío: ${dinero(pedido.envio, simbolo)}\n` : ''}${Number(pedido.comision) > 0 ? `Comisión: ${dinero(pedido.comision, simbolo)}\n` : ''}TOTAL: ${dinero(pedido.total, simbolo)}\n\nIngresa a tu cuenta para aceptar o rechazar la cotización: ${enlace}`;
   return obtenerTransportador().sendMail({ from: process.env.GMAIL_USER, to: cliente.correo, subject: `Tu cotización del pedido #${pedido.id}`, text: texto, html });
 }
-module.exports = { enviarCotizacion };
+async function enviarRestablecimiento({ usuario, token }) {
+  const enlace = `${(process.env.BASE_URL || 'http://localhost:3000').replace(/\/$/, '')}/restablecer-contrasena/${encodeURIComponent(token)}`;
+  const html = await ejs.renderFile(path.join(__dirname, '../../views/emails/restablecer-contrasena.ejs'), { usuario, enlace }, { async: true });
+  const texto = `Hola ${usuario.nombre},\n\nRecibimos una solicitud para restablecer la contraseña de tu cuenta de Pedidos Temu. Usa este enlace dentro de los próximos 30 minutos:\n${enlace}\n\nSi no solicitaste este cambio, puedes ignorar este correo.`;
+  return obtenerTransportador().sendMail({ from: process.env.GMAIL_USER, to: usuario.correo, subject: 'Restablecer contraseña de Pedidos Temu', text: texto, html });
+}
+module.exports = { enviarCotizacion, enviarRestablecimiento };

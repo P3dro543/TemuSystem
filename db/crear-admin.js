@@ -10,7 +10,7 @@ async function main() {
     const nombre = (await rl.question('Nombre del administrador: ')).trim();
     const correo = (await rl.question('Correo: ')).trim().toLowerCase();
     const contrasena = await rl.question('Contraseña (mínimo 12 caracteres): ');
-    if (nombre.length < 2 || nombre.length > 120) throw new Error('El nombre debe tener entre 2 y 120 caracteres.');
+    if (nombre.length < 2 || nombre.length > 100) throw new Error('El nombre debe tener entre 2 y 100 caracteres.');
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) throw new Error('El correo no tiene un formato válido.');
     if (contrasena.length < 12 || contrasena.length > 72) throw new Error('La contraseña debe tener entre 12 y 72 caracteres.');
     const hash = await bcrypt.hash(contrasena, 12);

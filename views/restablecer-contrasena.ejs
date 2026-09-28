@@ -1,0 +1,5 @@
+<%- include('partials/header', { titulo: 'Crear contraseña nueva' }) %>
+<section class="auth-card"><div class="eyebrow">Recuperar acceso</div><h1>Crea una contraseña nueva</h1><p class="muted">El enlace es de un solo uso y vence a los 30 minutos.</p>
+<% if (error) { %><div class="alert alert-error"><%= error %></div><% } %>
+<form method="post" action="/restablecer-contrasena/<%= token %>" class="stack"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><label>Contraseña nueva<input type="password" name="contrasena" autocomplete="new-password" minlength="8" maxlength="72" required><small>Al menos 8 caracteres.</small></label><label>Confirma la contraseña<input type="password" name="confirmar" autocomplete="new-password" minlength="8" maxlength="72" required></label><button class="button button-primary button-wide" type="submit">Guardar contraseña</button></form>
+</section><%- include('partials/footer') %>

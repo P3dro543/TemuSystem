@@ -52,3 +52,33 @@
   .user-edit-actions .button { width: 100%; }
   .pagination { gap: 8px; }
 }
+
+/* Filtros, auditoría y estados de usuarios */
+.order-filter-bar { flex-wrap: wrap; }
+.order-filter-bar label:first-child { flex: 1 1 220px; }
+.result-count { margin: 0 0 10px; }
+.user-active { display: inline-flex; padding: 5px 9px; border-radius: 999px; font-size: 12px; font-weight: 750; white-space: nowrap; }
+.user-active.is-active { color: #12663b; background: #eaf8f0; }
+.user-active.is-inactive { color: #922b3b; background: #fff0f1; }
+.audit-list { display: flex; flex-direction: column; gap: 12px; }
+.audit-entry { padding: 18px 20px; }
+.audit-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+.audit-heading > div { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.audit-heading time { color: var(--muted); font-size: 12px; white-space: nowrap; }
+.audit-action { color: #5429ae; font-size: 14px; font-weight: 750; }
+.audit-actor { margin: 12px 0 0; font-size: 14px; }
+.audit-entry details { margin-top: 12px; font-size: 13px; }
+.audit-entry summary { color: var(--purple); font-weight: 700; cursor: pointer; }
+.audit-entry pre { max-width: 100%; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; padding: 12px; border-radius: 8px; background: #f8f7fb; color: #514d61; font: 12px/1.5 ui-monospace,Consolas,monospace; }
+.forgot-link { display: flex; justify-content: flex-end; margin-top: -8px; }
+
+@media (max-width: 520px) {
+  .header-inner { flex-wrap: wrap; gap: 2px 8px; padding: 8px 12px; }
+  .brand { flex: 1 1 auto; }
+  .site-header nav { flex: 1 1 100%; justify-content: space-between; gap: 4px; border-top: 1px solid var(--line); padding-top: 4px; }
+  .site-header nav > a, .nav-button { padding-inline: 4px; font-size: 12px; }
+  .audit-entry { padding: 15px; }
+  .audit-heading { flex-direction: column; gap: 7px; }
+  .audit-heading time { white-space: normal; }
+  .order-filter-bar { align-items: stretch; }
+}

@@ -6,7 +6,8 @@ Aplicación en español para registrar pedidos de clientes, cotizarlos y enviar 
 
 1. Crea una cuenta en [Neon](https://neon.tech/) y crea un proyecto PostgreSQL.
 2. En el panel del proyecto, copia la cadena de conexión **pooled** (host con `-pooler` si Neon lo muestra). Se usará como `DATABASE_URL`; conserva `sslmode=require`.
-3. Abre el SQL Editor de Neon, copia el contenido completo de [`db/schema.sql`](db/schema.sql) y ejecútalo una vez. Crea las tablas `usuarios`, `pedidos`, `articulos` y `session`, además de sus índices.
+3. Si la base de datos está vacía, ejecuta primero [`db/schema.sql`](db/schema.sql) y después [`db/mejoras.sql`](db/mejoras.sql) en el SQL Editor de Neon.
+4. Si ya ejecutaste el esquema SQL anterior de Pedidos Temu, no lo vuelvas a ejecutar: ejecuta únicamente [`db/mejoras.sql`](db/mejoras.sql). Esta migración agrega el estado activo de las cuentas y las tablas para recuperación de contraseña y auditoría. Hazlo antes de desplegar esta versión.
 
 ## 2. Preparar Gmail
 
@@ -15,7 +16,7 @@ Activa la verificación en dos pasos de la cuenta Gmail que enviará los mensaje
 ## 3. Configurar y ejecutar localmente
 
 1. Copia `.env.example` a `.env`.
-2. Completa `DATABASE_URL`, `SESSION_SECRET`, `GMAIL_USER`, `GMAIL_APP_PASSWORD` y el símbolo deseado en `CURRENCY_SYMBOL`. Usa una cadena aleatoria larga para `SESSION_SECRET`. En local, `BASE_URL=http://localhost:3000`.
+2. Completa `DATABASE_URL`, `SESSION_SECRET`, `GMAIL_USER`, `GMAIL_APP_PASSWORD` y el símbolo deseado en `CURRENCY_SYMBOL`. Usa una cadena aleatoria larga para `SESSION_SECRET`. En local, `BASE_URL=http://localhost:3000`. La recuperación de contraseña envía un enlace de un solo uso que vence en 30 minutos, usando Gmail y `BASE_URL`.
 3. Instala Node.js 20 o posterior.
 4. Desde la carpeta del proyecto ejecuta:
 
@@ -48,7 +49,7 @@ Con la aplicación configurada y las tablas creadas, ejecuta `npm run crear-admi
    - `SESSION_SECRET` (secreto aleatorio largo y único)
    - `BASE_URL=https://tu-dominio.vercel.app` (usa tu dominio final, sin `/` al final)
    - `GMAIL_USER`, `GMAIL_APP_PASSWORD` y `CURRENCY_SYMBOL`
-3. Ejecuta el contenido de `db/schema.sql` en Neon si aún no lo hiciste y crea el administrador con `npm run crear-admin`, usando el mismo `.env`/`DATABASE_URL` de producción. No hagas el registro admin desde la web.
+3. Aplica en Neon la migración que corresponda según el paso 1 y crea el administrador con `npm run crear-admin`, usando el mismo `.env`/`DATABASE_URL` de producción. No hagas el registro admin desde la web.
 4. Despliega y abre el dominio asignado. En dominios propios, configura el dominio en Vercel y actualiza `BASE_URL` al dominio HTTPS definitivo.
 
 Las sesiones se almacenan en PostgreSQL, por lo que sobreviven entre invocaciones de las funciones. La aplicación reutiliza el pool de conexiones de Neon y está configurada con un máximo de cinco conexiones por instancia. El entorno gratuito de Vercel tiene límites de duración y recursos; el envío SMTP depende de que Gmail permita la conexión desde el entorno desplegado.
@@ -57,9 +58,17 @@ Las sesiones se almacenan en PostgreSQL, por lo que sobreviven entre invocacione
 
 Consulta `.env.example`. Nunca publiques `.env`, contraseñas de aplicación ni secretos en Git.
 
+## Módulos de administración
+
+- **Usuarios:** buscar, filtrar, editar y activar o desactivar cuentas. Desactivar una cuenta cierra sus sesiones sin borrar pedidos ni historial.
+- **Pedidos:** filtrar por estado, cliente y fechas; la lista muestra hasta 50 pedidos por página.
+- **Auditoría:** consulta los cambios importantes de pedidos, cotizaciones, cuentas y contraseñas, con filtros por acción y fecha.
+- **Contraseñas:** cada usuario puede cambiar su contraseña desde su cuenta o solicitar un enlace de recuperación por correo.
+- **Cotizaciones:** los importes usan formato regional de Costa Rica y el correo adapta sus artículos a pantallas pequeñas.
+
 ## Suposiciones y mejoras futuras
 
-- El script SQL no venía incluido en el texto recibido: `db/schema.sql` se creó desde cero siguiendo los nombres de tablas, columnas y estados especificados.
+- `db/schema.sql` sirve para instalaciones nuevas; en una base ya creada con el SQL anterior de Pedidos Temu se debe aplicar únicamente `db/mejoras.sql`.
 - `subtotal` se calcula en PostgreSQL como columna generada; antes de una cotización, el precio unitario y el subtotal permanecen sin definir.
 - Se admite cualquier URL HTTP o HTTPS introducida por el cliente, tal como indica la validación del requisito; el administrador puede abrir cada enlace para revisar el producto.
 - Futuras mejoras posibles: pagos en línea, notificaciones por WhatsApp y reportes. No están implementadas.

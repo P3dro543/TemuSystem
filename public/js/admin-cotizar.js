@@ -4,7 +4,7 @@
   if (!formulario || !salida) return;
   const precio = [...formulario.querySelectorAll('[name="precio_unitario"]')];
   const cargos = [...formulario.querySelectorAll('[data-cargo]')];
-  const simbolo = salida.textContent.match(/^[^\d\s-]+/)?.[0] || '$';
+  const simbolo = salida.dataset.currency || '$';
   const actualizar = () => {
     let centavos = 0;
     for (const input of precio) {
@@ -14,7 +14,8 @@
       centavos += cantidad * valor;
     }
     for (const input of cargos) centavos += Math.round(Number(input.value || 0) * 100);
-    salida.textContent = `${simbolo}${(centavos / 100).toFixed(2)}`;
+    const monto = new Intl.NumberFormat('es-CR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(centavos / 100);
+    salida.textContent = `${simbolo} ${monto}`;
   };
   formulario.addEventListener('input', actualizar);
   actualizar();

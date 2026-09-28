@@ -33,7 +33,8 @@ app.use((req, res, next) => {
   res.locals.mensaje = req.session.mensaje || null;
   delete req.session.mensaje;
   res.locals.etiquetasEstado = ETIQUETAS;
-  res.locals.dinero = (n) => dinero(n, process.env.CURRENCY_SYMBOL || '$');
+  res.locals.simboloMoneda = process.env.CURRENCY_SYMBOL || '$';
+  res.locals.dinero = (n) => dinero(n, res.locals.simboloMoneda);
   next();
 });
 app.use((req, res, next) => {

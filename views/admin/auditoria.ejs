@@ -1,0 +1,26 @@
+<%- include('../partials/header', { titulo: 'Auditoría' }) %>
+<div class="page-heading"><div><div class="eyebrow">Panel de administración</div><h1>Auditoría</h1><p class="muted">Historial de acciones en cuentas y pedidos. Total de eventos: <strong><%= total %></strong>.</p></div><a class="text-link" href="/admin/pedidos">← Volver a pedidos</a></div>
+
+<form class="filter-bar panel order-filter-bar" method="get" action="/admin/auditoria">
+  <label>Acción<select name="accion"><option value="">Todas las acciones</option><% acciones.forEach(a => { %><option value="<%= a %>" <%= accion === a ? 'selected' : '' %>><%= etiquetasAuditoria[a] || a %></option><% }) %></select></label>
+  <label>Desde<input type="date" name="desde" value="<%= desde %>"></label>
+  <label>Hasta<input type="date" name="hasta" value="<%= hasta %>"></label>
+  <button class="button button-primary" type="submit">Filtrar</button>
+  <% if (accion || desde || hasta) { %><a class="button button-quiet" href="/admin/auditoria">Limpiar</a><% } %>
+</form>
+
+<% if (!registros.length) { %>
+  <section class="empty-state"><div class="empty-icon">✓</div><h2>Aún no hay eventos</h2><p>Los cambios realizados en la app aparecerán aquí.</p></section>
+<% } else { %>
+  <div class="audit-list"><% registros.forEach(r => { %><article class="panel audit-entry">
+    <div class="audit-heading"><div><span class="audit-action"><%= etiquetasAuditoria[r.accion] || r.accion %></span><span class="muted"><%= r.entidad %> #<%= r.entidad_id || '—' %></span></div><time datetime="<%= new Date(r.creado_en).toISOString() %>"><%= new Date(r.creado_en).toLocaleString('es-CR') %></time></div>
+    <p class="audit-actor"><strong><%= r.actor || 'Sistema' %></strong><% if (r.actor_correo) { %><span class="muted"> · <%= r.actor_correo %></span><% } %></p>
+    <% if (r.detalles && Object.keys(r.detalles).length) { %><details><summary>Ver detalles</summary><pre><%= JSON.stringify(r.detalles, null, 2) %></pre></details><% } %>
+  </article><% }) %></div>
+  <% if (paginas > 1) { %><nav class="pagination" aria-label="Paginación de auditoría">
+    <% if (pagina > 1) { %><a class="button button-quiet" href="/admin/auditoria?accion=<%= encodeURIComponent(accion) %>&amp;desde=<%= encodeURIComponent(desde) %>&amp;hasta=<%= encodeURIComponent(hasta) %>&amp;pagina=<%= pagina - 1 %>">← Anterior</a><% } %>
+    <span>Página <%= pagina %> de <%= paginas %></span>
+    <% if (pagina < paginas) { %><a class="button button-quiet" href="/admin/auditoria?accion=<%= encodeURIComponent(accion) %>&amp;desde=<%= encodeURIComponent(desde) %>&amp;hasta=<%= encodeURIComponent(hasta) %>&amp;pagina=<%= pagina + 1 %>">Siguiente →</a><% } %>
+  </nav><% } %>
+<% } %>
+<%- include('../partials/footer') %>

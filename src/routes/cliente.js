@@ -2,6 +2,7 @@ const express = require('express');
 const pool = require('../../db/pool');
 const { requiereLogin, soloCliente } = require('../middleware/auth');
 const { urlTemuValida } = require('../services/pedidos');
+const { registrarAuditoria } = require('../services/auditoria');
 const router = express.Router();
 router.use(requiereLogin, soloCliente);
 
@@ -26,6 +27,7 @@ router.post('/pedidos/nuevo', async (req, res, next) => {
     const result = await client.query("INSERT INTO pedidos (usuario_id, estado) VALUES ($1, 'pendiente') RETURNING id", [req.session.usuario.id]);
     const pedidoId = result.rows[0].id;
     for (const fila of filas) await client.query('INSERT INTO articulos (pedido_id, link, nota, cantidad) VALUES ($1,$2,$3,$4)', [pedidoId, fila.link, fila.nota || null, Number(fila.cantidad)]);
+    await registrarAuditoria(client, { actorId: req.session.usuario.id, accion: 'pedido_creado', entidad: 'pedido', entidadId: pedidoId, detalles: { articulos: filas.length } });
     await client.query('COMMIT');
     req.session.mensaje = { tipo: 'exito', texto: `Pedido #${pedidoId} creado. Te avisaremos cuando esté cotizado.` };
     res.redirect(`/cliente/pedidos/${pedidoId}`);
@@ -46,11 +48,17 @@ router.post('/pedidos/:id/responder', async (req, res, next) => {
     req.session.mensaje = { tipo: 'error', texto: 'Respuesta no válida.' };
     return res.redirect(`/cliente/pedidos/${encodeURIComponent(req.params.id)}`);
   }
+  let client;
   try {
+    client = await pool.connect();
+    await client.query('BEGIN');
     const estado = accion === 'aceptar' ? 'aceptado' : 'rechazado';
-    const r = await pool.query("UPDATE pedidos SET estado=$1, actualizado_en=NOW() WHERE id=$2 AND usuario_id=$3 AND estado='cotizado' RETURNING id", [estado, req.params.id, req.session.usuario.id]);
+    const r = await client.query("UPDATE pedidos SET estado=$1, actualizado_en=NOW() WHERE id=$2 AND usuario_id=$3 AND estado='cotizado' RETURNING id", [estado, req.params.id, req.session.usuario.id]);
+    if (r.rowCount) await registrarAuditoria(client, { actorId: req.session.usuario.id, accion: 'pedido_respondido', entidad: 'pedido', entidadId: req.params.id, detalles: { respuesta: estado } });
+    await client.query('COMMIT');
     req.session.mensaje = { tipo: r.rowCount ? 'exito' : 'error', texto: r.rowCount ? `Cotización ${accion === 'aceptar' ? 'aceptada' : 'rechazada'}.` : 'Este pedido ya no tiene una cotización pendiente de respuesta.' };
     res.redirect(`/cliente/pedidos/${encodeURIComponent(req.params.id)}`);
-  } catch (e) { next(e); }
+  } catch (e) { if (client) { try { await client.query('ROLLBACK'); } catch {} } next(e); }
+  finally { client?.release(); }
 });
 module.exports = router;

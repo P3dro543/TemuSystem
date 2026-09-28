@@ -1,0 +1,5 @@
+<%- include('partials/header', { titulo: 'Recuperar contraseña' }) %>
+<section class="auth-card"><div class="eyebrow">Recuperar acceso</div><h1>¿Olvidaste tu contraseña?</h1><p class="muted">Escribe el correo de tu cuenta. Te enviaremos un enlace si está registrado.</p>
+<form method="post" action="/recuperar-contrasena" class="stack"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><label>Correo electrónico<input type="email" name="correo" autocomplete="email" maxlength="254" required></label><button class="button button-primary button-wide" type="submit">Enviar enlace</button></form>
+<p class="auth-switch"><a href="/login">Volver a iniciar sesión</a></p></section>
+<%- include('partials/footer') %>

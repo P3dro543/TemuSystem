@@ -1,0 +1,6 @@
+<%- include('partials/header', { titulo: 'Cambiar contraseña' }) %>
+<a class="text-link back-link" href="<%= usuario.rol === 'admin' ? '/admin/pedidos' : '/cliente/pedidos' %>">← Volver</a>
+<section class="auth-card"><div class="eyebrow">Seguridad de la cuenta</div><h1>Cambiar contraseña</h1><p class="muted">Confirma tu contraseña actual y escribe una nueva.</p>
+<% if (error) { %><div class="alert alert-error"><%= error %></div><% } %>
+<form method="post" action="/cuenta/contrasena" class="stack"><input type="hidden" name="_csrf" value="<%= csrfToken %>"><label>Contraseña actual<input type="password" name="contrasena_actual" autocomplete="current-password" required></label><label>Contraseña nueva<input type="password" name="contrasena" autocomplete="new-password" minlength="8" maxlength="72" required><small>Al menos 8 caracteres.</small></label><label>Confirma la contraseña nueva<input type="password" name="confirmar" autocomplete="new-password" minlength="8" maxlength="72" required></label><button class="button button-primary button-wide" type="submit">Cambiar contraseña</button></form>
+</section><%- include('partials/footer') %>
