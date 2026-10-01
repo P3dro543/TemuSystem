@@ -327,4 +327,4 @@ button:focus-visible, a:focus-visible, summary:focus-visible {
   .privacy-section { border-radius: 13px; }
   .privacy-legal-links { gap: 9px 14px; }
 }
-.brand-mark{display:block;width:36px;height:36px;object-fit:contain;flex:none}
+.brand-mark{display:block;width:36px;height:36px;object-fit:contain;flex:none;background:transparent;border-radius:0}
